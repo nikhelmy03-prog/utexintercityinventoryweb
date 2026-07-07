@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UTEX Rolling Stock Inventory Dashboard</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.5.0/dist/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0f2f5;color:#1a1a2e;font-size:14px}
+.topbar{background:linear-gradient(135deg,#1a3a5c 0%,#15304f 100%);color:#fff;padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:60px;flex-wrap:wrap;gap:8px}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-logo{width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;letter-spacing:.5px;flex-shrink:0}
+.brand-text h1{font-size:16px;font-weight:600;color:#fff}
+.brand-text p{font-size:11px;color:rgba(255,255,255,0.6)}
+.top-filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.top-filters select{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:#fff;padding:5px 10px;border-radius:7px;font-size:12px;cursor:pointer;font-family:inherit}
+.top-filters select option{background:#1a3a5c;color:#fff}
+#clk{font-size:11px;color:rgba(255,255,255,0.55);white-space:nowrap}
+.main{padding:20px 24px}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:18px}
+.sc{background:#fff;border-radius:10px;padding:13px 15px;border:1px solid #e5e7eb}
+.sc-label{font-size:11px;color:#6b7280;margin-bottom:5px;display:flex;align-items:center;gap:5px}
+.sc-val{font-size:24px;font-weight:700}
+.sc-sub{font-size:10px;color:#9ca3af;margin-top:2px}
+.tab-bar{display:flex;gap:0;border-bottom:2px solid #e5e7eb;margin-bottom:18px;overflow-x:auto}
+.tab{padding:9px 18px;font-size:13px;cursor:pointer;border:none;background:none;color:#6b7280;border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;font-family:inherit}
+.tab.active{color:#1a3a5c;border-bottom:2px solid #1a3a5c;font-weight:600}
+.tab:hover{color:#1a3a5c;background:#f8fafc}
+.tab i{font-size:13px;margin-right:5px}
+.tbl-card{background:#fff;border-radius:10px;border:1px solid #e5e7eb;overflow:hidden}
+.tbl-wrap{overflow-x:auto}
+table.mt{width:100%;border-collapse:collapse;font-size:12px}
+table.mt th{text-align:left;padding:9px 10px;font-size:10px;font-weight:600;color:#6b7280;border-bottom:1px solid #e5e7eb;background:#f9fafb;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;cursor:pointer;user-select:none}
+table.mt th:hover{background:#f3f4f6}
+table.mt th.sorted{color:#1a3a5c}
+table.mt td{padding:9px 10px;border-bottom:1px solid #f3f4f6;color:#1a1a2e;vertical-align:middle}
+table.mt tr:last-child td{border-bottom:none}
+table.mt tr:hover td{background:#f8fafc}
+/* inline editable cells */
+.editable{border:1px solid transparent;border-radius:5px;padding:3px 6px;cursor:pointer;transition:border .12s,background .12s;min-width:32px;display:inline-block;text-align:center}
+.editable:hover{border-color:#93c5fd;background:#eff6ff}
+.editable:focus{border-color:#1a3a5c;background:#fff;outline:none;cursor:text}
+.editable-text{border:1px solid transparent;border-radius:5px;padding:2px 5px;cursor:pointer;transition:border .12s,background .12s;min-width:80px;display:inline-block}
+.editable-text:hover{border-color:#93c5fd;background:#eff6ff}
+.editable-text:focus{border-color:#1a3a5c;background:#fff;outline:none;cursor:text}
+.pill{display:inline-flex;align-items:center;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:600;white-space:nowrap}
+.p-loco{background:#dbeafe;color:#1e40af}
+.p-pgc{background:#ede9fe;color:#5b21b6}
+.p-coach{background:#d1fae5;color:#065f46}
+.p-ih{background:#e0f2fe;color:#0369a1}
+.p-vd{background:#fef3c7;color:#92400e}
+.p-outs{background:#f3e8ff;color:#6b21a8}
+.p-ihvd{background:#fce7f3;color:#9d174d}
+.p-ok{background:#dcfce7;color:#166534}
+.p-low{background:#fef9c3;color:#854d0e}
+.p-crit{background:#fee2e2;color:#991b1b}
+.p-progcomp{background:#dcfce7;color:#166534}
+.p-proginp{background:#dbeafe;color:#1e40af}
+.p-progpen{background:#fef3c7;color:#92400e}
+.p-progterm{background:#fee2e2;color:#991b1b}
+.p-progna{background:#f3f4f6;color:#6b7280}
+.n-ok{color:#16a34a;font-weight:700}
+.n-crit{color:#dc2626;font-weight:700}
+.n-warn{color:#d97706;font-weight:700}
+.n-flt{color:#7c3aed;font-weight:700}
+.n-def{color:#b91c1c;font-weight:700}
+.n-muted{color:#9ca3af}
+.bar-w{display:flex;align-items:center;gap:6px}
+.bar{height:5px;border-radius:3px;flex:1;background:#e5e7eb;overflow:hidden;min-width:50px}
+.bar-f{height:100%;border-radius:3px}
+.bf-ok{background:#22c55e}
+.bf-low{background:#f59e0b}
+.bf-crit{background:#ef4444}
+.sd{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:5px;flex-shrink:0}
+.sd-ok{background:#22c55e}
+.sd-low{background:#f59e0b}
+.sd-crit{background:#ef4444}
+.abtn{padding:4px 9px;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit;border:1px solid #d1d5db;background:#fff;color:#374151}
+.abtn:hover{background:#f3f4f6}
+.abtn-detail{border-color:#1a3a5c;color:#1a3a5c}
+.abtn-detail:hover{background:#eff6ff}
+.abtn-del{border-color:#fca5a5;color:#dc2626}
+.abtn-del:hover{background:#fef2f2}
+.depot-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.depot-card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:14px 16px}
+.depot-name{font-size:13px;font-weight:600;color:#1a3a5c;margin-bottom:10px;display:flex;align-items:center;gap:7px}
+.depot-stat{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;align-items:center}
+.depot-lbl{color:#9ca3af}
+.depot-divider{border:none;border-top:1px solid #f3f4f6;margin:8px 0}
+.depot-items-list{font-size:11px;color:#6b7280;margin-top:6px}
+.depot-item-row{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #f9fafb}
+.depot-item-row:last-child{border-bottom:none}
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:200;align-items:center;justify-content:center;padding:16px}
+.modal-overlay.open{display:flex}
+.modal-box{background:#fff;border-radius:14px;width:100%;max-width:720px;max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.modal-header{padding:18px 20px;border-bottom:1px solid #e5e7eb;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;position:sticky;top:0;background:#fff;z-index:1}
+.modal-body{padding:18px 20px}
+.modal-close{background:none;border:none;cursor:pointer;color:#9ca3af;font-size:20px;line-height:1;flex-shrink:0;padding:2px}
+.modal-close:hover{color:#374151}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.info-block{background:#f9fafb;border-radius:8px;padding:10px 12px}
+.info-block-label{font-size:10px;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.info-block-val{font-size:13px;font-weight:600;color:#1a1a2e}
+/* EDIT MODAL */
+.edit-form{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:600px){.edit-form{grid-template-columns:1fr}}
+.ef label{display:block;font-size:11px;color:#6b7280;margin-bottom:4px;font-weight:500}
+.ef input,.ef select,.ef textarea{width:100%;padding:8px 10px;border-radius:7px;border:1px solid #d1d5db;font-family:inherit;font-size:12px;color:#1a1a2e;background:#fff}
+.ef input:focus,.ef select:focus,.ef textarea:focus{outline:none;border-color:#1a3a5c;box-shadow:0 0 0 2px rgba(26,58,92,.1)}
+.ef textarea{height:58px;resize:vertical}
+.ef.full{grid-column:1/-1}
+.depot-edit-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px}
+.dep-edit-cell{background:#f9fafb;border-radius:7px;padding:8px 10px;border:1px solid #e5e7eb}
+.dep-edit-cell label{font-size:10px;font-weight:600;color:#1a3a5c;display:block;margin-bottom:6px}
+.dep-num-row{display:flex;justify-content:space-between;gap:6px}
+.dep-num-row .dn{flex:1}
+.dep-num-row .dn label{font-size:10px;color:#9ca3af;margin-bottom:3px;display:block}
+.dep-num-row .dn input{width:100%;padding:5px 7px;border-radius:5px;border:1px solid #d1d5db;font-size:12px;font-family:inherit;text-align:center}
+.proc-box{background:#f0f9ff;border:1px solid #bae6fd;border-radius:7px;padding:10px 12px;font-size:12px;color:#0369a1;margin-top:12px;line-height:1.6}
+.btn-row{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+.btn-p{padding:8px 18px;border-radius:7px;background:#1a3a5c;color:#fff;border:none;cursor:pointer;font-size:13px;font-family:inherit;font-weight:500}
+.btn-p:hover{background:#15304f}
+.btn-c{padding:8px 18px;border-radius:7px;background:#f3f4f6;color:#374151;border:1px solid #d1d5db;cursor:pointer;font-size:13px;font-family:inherit}
+.btn-danger{padding:8px 18px;border-radius:7px;background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;cursor:pointer;font-size:13px;font-family:inherit}
+.btn-danger:hover{background:#fee2e2}
+/* ENTRY PANEL */
+.entry-panel{background:#fff;border-radius:10px;border:1px solid #e5e7eb;padding:20px}
+.ep-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:600px){.ep-grid{grid-template-columns:1fr}}
+.fr label{display:block;font-size:11px;color:#6b7280;margin-bottom:4px;font-weight:500}
+.fr input,.fr select,.fr textarea{width:100%;padding:8px 10px;border-radius:7px;border:1px solid #d1d5db;font-family:inherit;font-size:12px;color:#1a1a2e;background:#fff}
+.fr input:focus,.fr select:focus,.fr textarea:focus{outline:none;border-color:#1a3a5c}
+.fr textarea{height:65px;resize:vertical}
+.txn-list{display:flex;flex-direction:column;gap:7px}
+.ti{display:flex;align-items:center;gap:10px;padding:10px 13px;border-radius:8px;border:1px solid #e5e7eb;background:#fff}
+.ti-ic{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ti-in-bg{background:#dcfce7}
+.ti-out-bg{background:#fee2e2}
+.ti-edit-bg{background:#dbeafe}
+.ti-info{flex:1;min-width:0}
+.ti-name{font-size:12px;font-weight:600;color:#1a1a2e}
+.ti-meta{font-size:10px;color:#9ca3af;margin-top:2px}
+.ti-qty{font-size:13px;font-weight:700;flex-shrink:0}
+.ti-qty-in{color:#16a34a}
+.ti-qty-out{color:#dc2626}
+.ti-qty-edit{color:#1a3a5c}
+.empty{text-align:center;padding:2.5rem;color:#9ca3af;font-size:13px}
+.legend-row{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
+.leg{display:flex;align-items:center;gap:5px;font-size:11px;color:#6b7280}
+.search-bar{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.search-bar input{flex:1;padding:8px 12px;border-radius:8px;border:1px solid #d1d5db;font-family:inherit;font-size:13px}
+.search-bar input:focus{outline:none;border-color:#1a3a5c}
+.add-item-btn{padding:7px 14px;border-radius:7px;background:#1a3a5c;color:#fff;border:none;cursor:pointer;font-size:12px;font-family:inherit;display:flex;align-items:center;gap:5px}
+.add-item-btn:hover{background:#15304f}
+.edit-hint{font-size:10px;color:#9ca3af;margin-left:6px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-logo">UTX</div>
+    <div class="brand-text">
+      <h1>UTEX Rolling Stock Inventory</h1>
+      <p id="clk">Loading...</p>
+    </div>
+  </div>
+  <div class="top-filters">
+    <select id="flt-asset" onchange="applyFilters()">
+      <option value="">All asset types</option>
+      <option value="LOCO">LOCO</option>
+      <option value="PGC">PGC</option>
+      <option value="COACH">COACH</option>
+    </select>
+    <select id="flt-prog" onchange="applyFilters()">
+      <option value="">All programs</option>
+      <option value="Inhouse">Inhouse</option>
+      <option value="Vendor">Vendor</option>
+      <option value="Outsource">Outsource</option>
+      <option value="Inhouse & Vendor">Inhouse &amp; Vendor</option>
+    </select>
+    <select id="flt-depot" onchange="applyFilters()">
+      <option value="">All depots</option>
+      <option value="CWBG">Central Workshop (CWBG)</option>
+      <option value="KLSD">KL Sentral (KLSD)</option>
+      <option value="DKB">Kempas Baru (DKB)</option>
+      <option value="DGM">Gemas (DGM)</option>
+      <option value="DLIP">Kuala Lipis (DLIP)</option>
+      <option value="DTUM">Tumpat (DTUM)</option>
+    </select>
+    <select id="flt-status" onchange="applyFilters()">
+      <option value="">All statuses</option>
+      <option value="crit">Critical (0 available)</option>
+      <option value="low">Low stock</option>
+      <option value="ok">OK</option>
+    </select>
+  </div>
+</div>
+
+<div class="main">
+<div class="stats-grid">
+  <div class="sc"><div class="sc-label"><i class="ti ti-packages" style="font-size:13px"></i>Total items</div><div class="sc-val" style="color:#1a3a5c" id="s-total">0</div><div class="sc-sub">PGC &amp; COACH</div></div>
+  <div class="sc"><div class="sc-label"><i class="ti ti-circle-check" style="font-size:13px;color:#16a34a"></i>Available</div><div class="sc-val n-ok" id="s-ava">0</div><div class="sc-sub">serviceable units</div></div>
+  <div class="sc"><div class="sc-label"><i class="ti ti-arrows-exchange" style="font-size:13px;color:#7c3aed"></i>Floating</div><div class="sc-val n-flt" id="s-flt">0</div><div class="sc-sub">in transit / field</div></div>
+  <div class="sc"><div class="sc-label"><i class="ti ti-tools" style="font-size:13px;color:#b91c1c"></i>Defective</div><div class="sc-val n-def" id="s-def">0</div><div class="sc-sub">awaiting repair</div></div>
+  <div class="sc"><div class="sc-label"><i class="ti ti-alert-triangle" style="font-size:13px;color:#d97706"></i>Low stock</div><div class="sc-val n-warn" id="s-low">0</div><div class="sc-sub">below required</div></div>
+  <div class="sc"><div class="sc-label"><i class="ti ti-alert-circle" style="font-size:13px;color:#dc2626"></i>Critical</div><div class="sc-val n-crit" id="s-crit">0</div><div class="sc-sub">zero available</div></div>
+</div>
+
+<div class="tab-bar">
+  <button class="tab active" onclick="switchTab('inventory',this)"><i class="ti ti-packages"></i>Inventory</button>
+  <button class="tab" onclick="switchTab('depot',this)"><i class="ti ti-building-warehouse"></i>By depot</button>
+  <button class="tab" onclick="switchTab('entry',this)"><i class="ti ti-clipboard-plus"></i>Stock entry</button>
+  <button class="tab" onclick="switchTab('log',this)"><i class="ti ti-list-details"></i>Transaction log</button>
+</div>
+
+<!-- INVENTORY TAB -->
+<div id="tab-inventory">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+    <div class="search-bar" style="margin:0;flex:1;min-width:200px">
+      <i class="ti ti-search" style="font-size:16px;color:#9ca3af"></i>
+      <input type="text" id="search-inp" placeholder="Search item name..." oninput="applyFilters()">
+    </div>
+    <button class="add-item-btn" onclick="openAddModal()"><i class="ti ti-plus" style="font-size:13px"></i>Add item</button>
+    <span class="edit-hint"><i class="ti ti-pencil" style="font-size:11px"></i> Click any number or text cell to edit inline</span>
+  </div>
+  <div class="legend-row">
+    <div class="leg"><span class="sd sd-ok"></span>Available / serviceable</div>
+    <div class="leg"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#7c3aed;margin-right:4px"></span>Floating</div>
+    <div class="leg"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#dc2626;margin-right:4px"></span>Defective</div>
+    <div style="margin-left:auto;font-size:11px;color:#9ca3af" id="row-count"></div>
+  </div>
+  <div class="tbl-card">
+  <div class="tbl-wrap">
+  <table class="mt" id="main-table">
+    <thead>
+      <tr>
+        <th onclick="sortTable(0)">No ↕</th>
+        <th onclick="sortTable(1)">Asset ↕</th>
+        <th onclick="sortTable(2)" style="min-width:200px">UTEX item ↕</th>
+        <th onclick="sortTable(3)">Program ↕</th>
+        <th onclick="sortTable(4)">Available ↕</th>
+        <th onclick="sortTable(5)">Floating ↕</th>
+        <th onclick="sortTable(6)">Defective ↕</th>
+        <th onclick="sortTable(7)">Need ↕</th>
+        <th style="min-width:90px">Level</th>
+        <th onclick="sortTable(9)">Status ↕</th>
+        <th>Proc. status</th>
+        <th style="min-width:110px">Actions</th>
+      </tr>
+    </thead>
+    <tbody id="inv-body"></tbody>
+  </table>
+  </div>
+  </div>
+</div>
+
+<!-- DEPOT TAB -->
+<div id="tab-depot" style="display:none">
+  <div style="font-size:14px;font-weight:600;color:#374151;margin-bottom:14px;display:flex;align-items:center;gap:7px">
+    <i class="ti ti-building-warehouse" style="font-size:16px;color:#1a3a5c"></i>Stock by depot — PGC &amp; COACH only
+  </div>
+  <div id="depot-cards" class="depot-grid"></div>
+</div>
+
+<!-- ENTRY TAB -->
+<div id="tab-entry" style="display:none">
+  <div class="entry-panel">
+    <div style="font-size:14px;font-weight:600;color:#1a3a5c;margin-bottom:16px;display:flex;align-items:center;gap:8px">
+      <i class="ti ti-clipboard-plus" style="font-size:16px"></i>Record stock movement
+    </div>
+    <div class="ep-grid">
+      <div class="fr"><label>UTEX item</label><select id="e-item"></select></div>
+      <div class="fr"><label>Depot</label><select id="e-depot">
+        <option value="CWBG">Central Workshop (CWBG)</option>
+        <option value="KLSD">KL Sentral (KLSD)</option>
+        <option value="DKB">Kempas Baru (DKB)</option>
+        <option value="DGM">Gemas (DGM)</option>
+        <option value="DLIP">Kuala Lipis (DLIP)</option>
+        <option value="DTUM">Tumpat (DTUM)</option>
+      </select></div>
+      <div class="fr"><label>Movement type</label><select id="e-type">
+        <option value="svc-in">Stock in — serviceable</option>
+        <option value="svc-out">Stock out — serviceable issued</option>
+        <option value="flt-in">Floating in (returned from field)</option>
+        <option value="flt-out">Floating out (issued to field)</option>
+        <option value="def-in">Defective received</option>
+        <option value="def-out">Defective sent for repair</option>
+        <option value="def-to-svc">Repaired → serviceable</option>
+      </select></div>
+      <div class="fr"><label>Quantity</label><input type="number" id="e-qty" min="1" value="1"></div>
+      <div class="fr"><label>Reference / work order no.</label><input type="text" id="e-ref" placeholder="e.g. WO-2026-001 / IR No."></div>
+      <div class="fr"><label>Recorded by</label><input type="text" id="e-by" placeholder="Name / staff ID"></div>
+    </div>
+    <div class="fr" style="margin-top:12px"><label>Remarks / procurement status</label><textarea id="e-notes" placeholder="e.g. PO ongoing, IR issued, waiting supply..."></textarea></div>
+    <div class="btn-row">
+      <button class="btn-c" onclick="clearForm()"><i class="ti ti-x" style="font-size:12px;margin-right:4px"></i>Clear</button>
+      <button class="btn-p" onclick="submitEntry()"><i class="ti ti-check" style="font-size:13px;margin-right:5px"></i>Record movement</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOG TAB -->
+<div id="tab-log" style="display:none">
+  <div style="font-size:14px;font-weight:600;color:#374151;margin-bottom:14px;display:flex;align-items:center;gap:7px">
+    <i class="ti ti-list-details" style="font-size:16px;color:#1a3a5c"></i>Transaction log
+  </div>
+  <div id="txn-body"><div class="empty"><i class="ti ti-clipboard-x" style="font-size:32px;display:block;margin-bottom:8px"></i>No transactions recorded yet.</div></div>
+</div>
+</div>
+
+<!-- DETAIL / EDIT MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div>
+        <div id="modal-title" style="font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:4px"></div>
+        <div id="modal-sub" style="font-size:12px;color:#6b7280"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+const DEPOT_NAMES={CWBG:'Central Workshop',KLSD:'KL Sentral',DKB:'Kempas Baru',DGM:'Gemas',DLIP:'Kuala Lipis',DTUM:'Tumpat'};
+const DEPOTS=['CWBG','KLSD','DKB','DGM','DLIP','DTUM'];
+let sortCol=-1,sortAsc=true;
+let txns=[];
+
+// PGC & COACH only (LOCO removed from all depots as requested)
+let ITEMS=[
+  {no:31,asset:"PGC",item:"Engine PGC",program:"Inhouse",description:"1 unit-KLSD",progress:"0.2",proc_status:"Completed",need:0,available:0,flt:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0},def_qty:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0}},
+  {no:32,asset:"PGC",item:"Starter Motor PGC",program:"Vendor",description:"10 unit",progress:"",proc_status:"Paper submitted",need:0,available:0,flt:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0},def_qty:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0}},
+  {no:33,asset:"PGC",item:"Water Pump PGC",program:"Inhouse & Vendor",description:"20 unit",progress:"",proc_status:"Paper submitted",need:0,available:0,flt:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0},def_qty:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0}},
+  {no:34,asset:"PGC",item:"Radiator PGC",program:"Vendor",description:"8 unit",progress:"",proc_status:"Paper submitted",need:0,available:0,flt:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0},def_qty:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0}},
+  {no:35,asset:"PGC",item:"Leveling Valve (LEFT) PGC",program:"Inhouse",description:"10 unit-KLSD",progress:"5 unit delivered-50%",proc_status:"NA",need:0,available:0,flt:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0},def_qty:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0}},
+  {no:36,asset:"PGC",item:"Leveling Valve (RIGHT) PGC",program:"Inhouse",description:"10 unit-KLSD",progress:"5 unit delivered-50%",proc_status:"NA",need:0,available:0,flt:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0},def_qty:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0}},
+  {no:37,asset:"PGC",item:"Fuel Injector Nozzle PGC",program:"Inhouse",description:"0 unit-CWBG",progress:"0",proc_status:"NA",need:0,available:0,flt:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0},def_qty:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0}},
+  {no:38,asset:"PGC",item:"Fuel Injection Pump (FIP) PGC",program:"Vendor",description:"",progress:"",proc_status:"Preparing Paper",need:0,available:0,flt:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0},def_qty:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0}},
+  {no:39,asset:"PGC",item:"Main Alternator (TAIYO) PGC",program:"Vendor",description:"2 unit",progress:"0.1",proc_status:"In Progress-PO 20027478",need:0,available:0,flt:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0},def_qty:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0}},
+  {no:40,asset:"PGC",item:"Main Alternator (LEROY) PGC",program:"Vendor",description:"2 unit",progress:"",proc_status:"Paper submitted",need:0,available:0,flt:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0},def_qty:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0}},
+  {no:41,asset:"COACH",item:"Bogie Frame (Hyundai Coach)",program:"Inhouse & Vendor",description:"12 unit-TWS",progress:"1",proc_status:"Paper submitted",need:0,available:0,flt:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0},def_qty:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0}},
+  {no:42,asset:"COACH",item:"Bogie + Brake Rigging Complete (Hyundai Coach)",program:"Inhouse",description:"12 unit-KLSD",progress:"4 unit delivered-35%",proc_status:"NA",need:0,available:0,flt:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0},def_qty:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0}},
+  {no:43,asset:"COACH",item:"Damper Vertical (Hyundai Coach)",program:"Vendor",description:"28 unit-PSSB",progress:"1",proc_status:"Paper ready",need:0,available:0,flt:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0},def_qty:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0}},
+  {no:44,asset:"COACH",item:"Damper Lateral (Hyundai Coach)",program:"Vendor",description:"28 unit-PSSB",progress:"1",proc_status:"Paper ready",need:0,available:0,flt:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0},def_qty:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0}},
+  {no:45,asset:"COACH",item:"Damper Yaw (Hyundai Coach)",program:"Vendor",description:"30 unit-PSSB",progress:"1",proc_status:"Paper ready",need:0,available:0,flt:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0},def_qty:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0}},
+  {no:46,asset:"COACH",item:"Leveling Valve (LEFT) Hyundai Coach",program:"Inhouse",description:"30 unit-KLSD",progress:"20 unit delivered-70%",proc_status:"NA",need:0,available:0,flt:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0},def_qty:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0}},
+  {no:47,asset:"COACH",item:"Leveling Valve (RIGHT) Hyundai Coach",program:"Inhouse",description:"30 unit-KLSD",progress:"20 unit delivered-70%",proc_status:"NA",need:0,available:0,flt:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0},def_qty:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0}},
+  {no:48,asset:"COACH",item:"Distributor Valve KE1CSL (Hyundai Coach)",program:"Vendor",description:"40 unit-Artic Rail",progress:"40 unit delivered-100%",proc_status:"PO Completed-PO 20023479",need:0,available:0,flt:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0},def_qty:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0}},
+  {no:49,asset:"COACH",item:"5 Way Valve (Hyundai Coach)",program:"Inhouse & Vendor",description:"No floating defect unit",progress:"",proc_status:"Paper submitted",need:0,available:0,flt:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0},def_qty:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0}},
+  {no:50,asset:"COACH",item:"Aircond Package ASC Coach (Refurbish)",program:"Inhouse",description:"3 unit-KLSD",progress:"2 unit completed-70%",proc_status:"In Progress",need:0,available:0,flt:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0},def_qty:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0}},
+  {no:51,asset:"COACH",item:"Aircond Package ASC Coach (Old Type)",program:"Inhouse",description:"8 unit-KLSD",progress:"6 unit completed-70%",proc_status:"In Progress",need:0,available:0,flt:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0},def_qty:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0}},
+  {no:52,asset:"COACH",item:"Aircond Package EP Coach SK/INKA",program:"Inhouse",description:"2 unit-KLSD",progress:"0",proc_status:"NA",need:0,available:0,flt:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0},def_qty:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0}},
+  {no:53,asset:"COACH",item:"Brake Cylinder Coach (Old Type)",program:"Inhouse",description:"Waiting Replacement Kit from RSM",progress:"",proc_status:"NA",need:0,available:0,flt:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0},def_qty:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0}},
+  {no:54,asset:"COACH",item:"Brake Cylinder Coach (Refurbish)",program:"Inhouse & Vendor",description:"Waiting Replacement Kit from RSM",progress:"",proc_status:"NA",need:0,available:0,flt:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0},def_qty:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0}},
+  {no:55,asset:"COACH",item:"Aircond Package ADNS Coach",program:"Inhouse",description:"7 unit-KLSD",progress:"5 unit completed-75%",proc_status:"In Progress",need:0,available:0,flt:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0},def_qty:{CWBG:0,KLSD:0,DGM:0,DLIP:0,DTUM:0,DKB:0}}
+];
+
+let _nextNo = 100;
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function getStatus(it){if(it.available===0)return'crit';if(it.need<0)return'low';return'ok';}
+function totalFlt(it){return Object.values(it.flt).reduce((a,b)=>a+b,0);}
+function totalDef(it){return Object.values(it.def_qty).reduce((a,b)=>a+b,0);}
+function fmt(d){return d.toLocaleDateString('en-MY',{day:'2-digit',month:'short',year:'numeric'})+' '+d.toLocaleTimeString('en-MY',{hour:'2-digit',minute:'2-digit'});}
+function procClass(s){if(!s||s==='NA')return'p-progna';const l=s.toLowerCase();if(l.includes('completed')&&!l.includes('in progress'))return'p-progcomp';if(l.includes('in progress')||l.includes('ongoing'))return'p-proginp';if(l.includes('terminated'))return'p-progterm';if(l.includes('submitted')||l.includes('paper')||l.includes('preparing'))return'p-progpen';return'p-progna';}
+function progLabel(s){if(!s||s==='NA')return'N/A';const l=s.toLowerCase();if(l.includes('completed')&&!l.includes('in progress'))return'Completed';if(l.includes('in progress')||l.includes('ongoing'))return'In progress';if(l.includes('terminated'))return'Terminated';if(l.includes('submitted')||l.includes('paper'))return'Paper submitted';if(l.includes('preparing'))return'Preparing';return'Pending';}
+function assetClass(a){return a==='LOCO'?'p-loco':a==='PGC'?'p-pgc':'p-coach';}
+function progBadgeClass(p){if(!p)return'p-progna';const l=p.toLowerCase();if(l==='inhouse')return'p-ih';if(l==='vendor')return'p-vd';if(l==='outsource')return'p-outs';return'p-ihvd';}
+
+// ─── FILTER ───────────────────────────────────────────────────────────────────
+function filteredItems(){
+  const fa=document.getElementById('flt-asset').value;
+  const fp=document.getElementById('flt-prog').value;
+  const fd=document.getElementById('flt-depot').value;
+  const fs=document.getElementById('flt-status').value;
+  const sq=(document.getElementById('search-inp')||{value:''}).value.toLowerCase();
+  return ITEMS.filter(it=>{
+    if(fa&&it.asset!==fa)return false;
+    if(fp&&it.program!==fp)return false;
+    if(fd){const tot=(it.flt[fd]||0)+(it.def_qty[fd]||0);if(tot===0)return false;}
+    if(fs&&getStatus(it)!==fs)return false;
+    if(sq&&!it.item.toLowerCase().includes(sq))return false;
+    return true;
+  });
+}
+
+// ─── STATS ────────────────────────────────────────────────────────────────────
+function renderStats(){
+  const vis=filteredItems();
+  document.getElementById('s-total').textContent=vis.length;
+  document.getElementById('s-ava').textContent=vis.reduce((a,i)=>a+i.available,0);
+  document.getElementById('s-flt').textContent=vis.reduce((a,i)=>a+totalFlt(i),0);
+  document.getElementById('s-def').textContent=vis.reduce((a,i)=>a+totalDef(i),0);
+  document.getElementById('s-low').textContent=vis.filter(i=>getStatus(i)==='low').length;
+  document.getElementById('s-crit').textContent=vis.filter(i=>getStatus(i)==='crit').length;
+
+}
+
+// ─── INVENTORY RENDER ────────────────────────────────────────────────────────
+function renderInventory(){
+  const items=filteredItems();
+  document.getElementById('row-count').textContent=`${items.length} item(s)`;
+  const tbody=document.getElementById('inv-body');
+  if(!items.length){tbody.innerHTML=`<tr><td colspan="12"><div class="empty"><i class="ti ti-filter-off" style="font-size:28px;display:block;margin-bottom:6px"></i>No items match.</div></td></tr>`;return;}
+  tbody.innerHTML=items.map(it=>{
+    const st=getStatus(it);
+    const dc=st==='ok'?'sd-ok':st==='low'?'sd-low':'sd-crit';
+    const stPill=`<span class="pill p-${st==='ok'?'ok':st==='low'?'low':'crit'}">${st==='ok'?'OK':st==='low'?'Low':'Critical'}</span>`;
+    const avaClass=st==='ok'?'n-ok':st==='low'?'n-warn':'n-crit';
+    const flt=totalFlt(it),def=totalDef(it);
+    const pct=it.available>0?Math.min(100,Math.round(it.available/Math.max(it.available,Math.abs(it.need)+it.available)*100)):0;
+    const bf=st==='ok'?'bf-ok':st==='low'?'bf-low':'bf-crit';
+    const pl=progLabel(it.proc_status);
+    const pc=procClass(it.proc_status);
+    return `<tr data-no="${it.no}">
+      <td style="color:#9ca3af;font-size:11px">${it.no}</td>
+      <td><span class="pill ${assetClass(it.asset)}">${it.asset}</span></td>
+      <td style="font-weight:600;font-size:12px">
+        <span class="editable-text" contenteditable="true" data-field="item" data-no="${it.no}" onblur="saveField(this)">${it.item}</span>
+      </td>
+      <td>
+        <select class="pill ${progBadgeClass(it.program)}" style="border:none;cursor:pointer;font-size:10px;font-weight:600;padding:3px 6px;border-radius:20px;font-family:inherit" onchange="saveSelectField(this,'program',${it.no})">
+          <option value="Inhouse" ${it.program==='Inhouse'?'selected':''}>Inhouse</option>
+          <option value="Vendor" ${it.program==='Vendor'?'selected':''}>Vendor</option>
+          <option value="Outsource" ${it.program==='Outsource'?'selected':''}>Outsource</option>
+          <option value="Inhouse & Vendor" ${it.program==='Inhouse & Vendor'?'selected':''}>Inhouse &amp; Vendor</option>
+        </select>
+      </td>
+      <td><span class="${avaClass} editable" contenteditable="true" data-field="available" data-no="${it.no}" onblur="saveNumField(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}">${it.available}</span></td>
+      <td><span class="${flt>0?'n-flt':'n-muted'} editable" contenteditable="true" data-field="_flt_total" data-no="${it.no}" onblur="saveFltTotal(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}">${flt}</span></td>
+      <td><span class="${def>0?'n-def':'n-muted'} editable" contenteditable="true" data-field="_def_total" data-no="${it.no}" onblur="saveDefTotal(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}">${def}</span></td>
+      <td><span class="editable" contenteditable="true" data-field="need" data-no="${it.no}" onblur="saveNumField(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}" style="font-size:12px;color:#374151">${it.need}</span></td>
+      <td><div class="bar-w"><div class="bar"><div class="bar-f ${bf}" style="width:${pct}%"></div></div><span style="font-size:10px;color:#9ca3af;min-width:26px">${pct}%</span></div></td>
+      <td><span class="sd ${dc}"></span>${stPill}</td>
+      <td>
+        <select class="pill ${pc}" style="border:none;cursor:pointer;font-size:10px;font-weight:600;padding:3px 6px;border-radius:20px;font-family:inherit;max-width:130px" title="${it.proc_status}" onchange="saveProcStatus(this,${it.no})">
+          <option value="Completed" ${pl==='Completed'?'selected':''}>Completed</option>
+          <option value="In Progress" ${pl==='In progress'?'selected':''}>In Progress</option>
+          <option value="Paper submitted" ${pl==='Paper submitted'?'selected':''}>Paper submitted</option>
+          <option value="Preparing Paper" ${pl==='Preparing'?'selected':''}>Preparing Paper</option>
+          <option value="PO Terminated" ${pl==='Terminated'?'selected':''}>PO Terminated</option>
+          <option value="NA" ${(pl==='N/A'||pl==='Pending')?'selected':''}>N/A</option>
+        </select>
+      </td>
+      <td><div style="display:flex;gap:5px">
+        <button class="abtn abtn-detail" onclick="openDetailModal(${it.no})"><i class="ti ti-eye" style="font-size:11px;margin-right:2px"></i>Detail</button>
+        <button class="abtn abtn-detail" onclick="openEditModal(${it.no})" style="border-color:#7c3aed;color:#7c3aed"><i class="ti ti-edit" style="font-size:11px"></i></button>
+        <button class="abtn abtn-del" onclick="deleteItem(${it.no})"><i class="ti ti-trash" style="font-size:11px"></i></button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── INLINE EDIT HANDLERS ────────────────────────────────────────────────────
+function saveField(el){
+  const no=parseInt(el.dataset.no),field=el.dataset.field;
+  const it=ITEMS.find(i=>i.no===no); if(!it)return;
+  it[field]=el.textContent.trim();
+  logEdit(no,field,el.textContent.trim());
+  renderAll();
+  if(window._fbSave)window._fbSave();
+}
+function saveNumField(el){
+  const no=parseInt(el.dataset.no),field=el.dataset.field;
+  const it=ITEMS.find(i=>i.no===no); if(!it)return;
+  const v=parseInt(el.textContent.trim());
+  if(!isNaN(v)){it[field]=v;logEdit(no,field,v);}
+  renderAll();
+  if(window._fbSave)window._fbSave();
+}
+function saveFltTotal(el){
+  const no=parseInt(el.dataset.no);
+  const it=ITEMS.find(i=>i.no===no); if(!it)return;
+  const v=parseInt(el.textContent.trim());
+  if(!isNaN(v)&&v>=0){
+    // distribute evenly to CWBG
+    const old=totalFlt(it);
+    it.flt.CWBG=Math.max(0,it.flt.CWBG+(v-old));
+    logEdit(no,'flt_total',v);
+  }
+  renderAll();
+  if(window._fbSave)window._fbSave();
+}
+function saveDefTotal(el){
+  const no=parseInt(el.dataset.no);
+  const it=ITEMS.find(i=>i.no===no); if(!it)return;
+  const v=parseInt(el.textContent.trim());
+  if(!isNaN(v)&&v>=0){
+    const old=totalDef(it);
+    it.def_qty.CWBG=Math.max(0,it.def_qty.CWBG+(v-old));
+    logEdit(no,'def_total',v);
+  }
+  renderAll();
+  if(window._fbSave)window._fbSave();
+}
+function saveSelectField(el,field,no){
+  const it=ITEMS.find(i=>i.no===no); if(!it)return;
+  it[field]=el.value;
+  el.className='pill '+progBadgeClass(el.value);
+  el.style.cssText='border:none;cursor:pointer;font-size:10px;font-weight:600;padding:3px 6px;border-radius:20px;font-family:inherit';
+  logEdit(no,field,el.value);
+  renderStats();
+  if(window._fbSave)window._fbSave();
+}
+function saveProcStatus(el,no){
+  const it=ITEMS.find(i=>i.no===no); if(!it)return;
+  it.proc_status=el.value;
+  el.className='pill '+procClass(el.value);
+  el.style.cssText='border:none;cursor:pointer;font-size:10px;font-weight:600;padding:3px 6px;border-radius:20px;font-family:inherit;max-width:130px';
+  logEdit(no,'proc_status',el.value);
+  if(window._fbSave)window._fbSave();
+}
+function logEdit(no,field,val){
+  const it=ITEMS.find(i=>i.no===no);
+  txns.push({type:'edit',no,field,val,name:it?it.item:'',ts:Date.now()});
+}
+
+// ─── DELETE ───────────────────────────────────────────────────────────────────
+function deleteItem(no){
+  const it=ITEMS.find(i=>i.no===no);
+  if(!it)return;
+  if(!confirm(`Delete "${it.item}"? This cannot be undone.`))return;
+  ITEMS=ITEMS.filter(i=>i.no!==no);
+  txns.push({type:'delete',no,name:it.item,ts:Date.now()});
+  renderAll();
+  if(window._fbSave)window._fbSave();
+}
+
+// ─── DETAIL MODAL ─────────────────────────────────────────────────────────────
+function openDetailModal(no){
+  const it=ITEMS.find(i=>i.no===no); if(!it)return;
+  const st=getStatus(it);
+  document.getElementById('modal-title').textContent=it.item;
+  document.getElementById('modal-sub').textContent=`${it.asset} · Program: ${it.program} · Item no. ${it.no}`;
+  const flt=totalFlt(it),def=totalDef(it);
+  const depRows=DEPOTS.map(dep=>{
+    const f=it.flt[dep]||0,d=it.def_qty[dep]||0;
+    if(f===0&&d===0)return'';
+    return`<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:7px;border:1px solid #f3f4f6;margin-bottom:5px;font-size:12px">
+      <span style="font-weight:600;min-width:50px;color:#1a3a5c">${dep}</span>
+      <span style="color:#6b7280;min-width:110px;font-size:11px">${DEPOT_NAMES[dep]}</span>
+      <span style="flex:1">${f>0?`<span class="n-flt"><i class="ti ti-arrows-exchange" style="font-size:12px;margin-right:3px"></i>${f} floating</span>`:''}</span>
+      <span>${d>0?`<span class="n-def"><i class="ti ti-tools" style="font-size:12px;margin-right:3px"></i>${d} defective</span>`:''}</span>
+    </div>`;
+  }).filter(Boolean).join('');
+  document.getElementById('modal-body').innerHTML=`
+    <div class="info-grid">
+      <div class="info-block"><div class="info-block-label">Available (serviceable)</div><div class="info-block-val ${st==='crit'?'n-crit':st==='low'?'n-warn':'n-ok'}">${it.available} units</div></div>
+      <div class="info-block"><div class="info-block-label">Need / shortfall</div><div class="info-block-val">${it.need>=0?'+'+it.need:it.need}</div></div>
+      <div class="info-block"><div class="info-block-label">Total floating</div><div class="info-block-val n-flt">${flt} units</div></div>
+      <div class="info-block"><div class="info-block-label">Total defective</div><div class="info-block-val n-def">${def} units</div></div>
+      <div class="info-block"><div class="info-block-label">Program</div><div class="info-block-val"><span class="pill ${progBadgeClass(it.program)}">${it.program}</span></div></div>
+      <div class="info-block"><div class="info-block-label">Status</div><div class="info-block-val"><span class="pill p-${st==='ok'?'ok':st==='low'?'low':'crit'}">${st==='ok'?'OK':st==='low'?'Low stock':'Critical'}</span></div></div>
+    </div>
+    ${it.description?`<div style="font-size:12px;color:#374151;margin-bottom:10px"><strong>Description:</strong> ${it.description}</div>`:''}
+    ${it.progress&&it.progress!=='0'?`<div style="font-size:12px;color:#374151;margin-bottom:10px"><strong>Progress:</strong> ${it.progress}</div>`:''}
+    <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px"><i class="ti ti-building-warehouse" style="font-size:13px;margin-right:5px;color:#1a3a5c"></i>Depot breakdown</div>
+    ${depRows||'<div style="font-size:12px;color:#9ca3af;padding:8px">No depot-level floating or defective data.</div>'}
+    <div class="proc-box"><strong style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#0c4a6e">Procurement / status note</strong><br>${it.proc_status||'N/A'}</div>
+    <div class="btn-row">
+      <button class="btn-c" onclick="closeModal()">Close</button>
+      <button class="btn-p" onclick="closeModal();openEditModal(${it.no})"><i class="ti ti-edit" style="font-size:12px;margin-right:4px"></i>Edit item</button>
+    </div>`;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+// ─── FULL EDIT MODAL ─────────────────────────────────────────────────────────
+function openEditModal(no){
+  const it=ITEMS.find(i=>i.no===no); if(!it)return;
+  document.getElementById('modal-title').textContent='Edit: '+it.item;
+  document.getElementById('modal-sub').textContent=`Item no. ${it.no} · ${it.asset}`;
+  const depInputs=DEPOTS.map(dep=>`
+    <div class="dep-edit-cell">
+      <label>${dep} — ${DEPOT_NAMES[dep]}</label>
+      <div class="dep-num-row">
+        <div class="dn"><label>Floating</label><input type="number" id="ef-flt-${dep}" value="${it.flt[dep]||0}" min="0"></div>
+        <div class="dn"><label>Defective</label><input type="number" id="ef-def-${dep}" value="${it.def_qty[dep]||0}" min="0"></div>
+      </div>
+    </div>`).join('');
+  document.getElementById('modal-body').innerHTML=`
+    <div class="edit-form">
+      <div class="ef"><label>Item name</label><input type="text" id="ef-item" value="${it.item}"></div>
+      <div class="ef"><label>Asset type</label>
+        <select id="ef-asset"><option ${it.asset==='LOCO'?'selected':''}>LOCO</option><option ${it.asset==='PGC'?'selected':''}>PGC</option><option ${it.asset==='COACH'?'selected':''}>COACH</option></select></div>
+      <div class="ef"><label>Program</label>
+        <select id="ef-prog">
+          <option value="Inhouse" ${it.program==='Inhouse'?'selected':''}>Inhouse</option>
+          <option value="Vendor" ${it.program==='Vendor'?'selected':''}>Vendor</option>
+          <option value="Outsource" ${it.program==='Outsource'?'selected':''}>Outsource</option>
+          <option value="Inhouse & Vendor" ${it.program==='Inhouse & Vendor'?'selected':''}>Inhouse &amp; Vendor</option>
+        </select></div>
+      <div class="ef"><label>Procurement / proc. status</label>
+        <select id="ef-proc">
+          <option value="Completed" ${it.proc_status==='Completed'?'selected':''}>Completed</option>
+          <option value="In Progress" ${it.proc_status.includes('In Progress')||it.proc_status.includes('Ongoing')?'selected':''}>In Progress</option>
+          <option value="Paper submitted" ${it.proc_status.includes('submitted')||it.proc_status.includes('Paper')?'selected':''}>Paper submitted</option>
+          <option value="Preparing Paper" ${it.proc_status.includes('Preparing')?'selected':''}>Preparing Paper</option>
+          <option value="PO Terminated" ${it.proc_status.includes('Terminated')?'selected':''}>PO Terminated</option>
+          <option value="NA" ${it.proc_status==='NA'||!it.proc_status?'selected':''}>N/A</option>
+        </select></div>
+      <div class="ef"><label>Available (serviceable)</label><input type="number" id="ef-ava" value="${it.available}" min="0"></div>
+      <div class="ef"><label>Need / shortfall (negative = short)</label><input type="number" id="ef-need" value="${it.need}"></div>
+      <div class="ef full"><label>Description</label><input type="text" id="ef-desc" value="${it.description||''}"></div>
+      <div class="ef full"><label>Progress note</label><input type="text" id="ef-prog2" value="${it.progress||''}"></div>
+      <div class="ef full"><label>Full proc. status note</label><textarea id="ef-procnote">${it.proc_status}</textarea></div>
+      <div class="ef full">
+        <label style="margin-bottom:8px;display:block"><i class="ti ti-building-warehouse" style="font-size:12px;margin-right:4px;color:#1a3a5c"></i>Depot floating &amp; defective breakdown</label>
+        <div class="depot-edit-grid">${depInputs}</div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-danger" onclick="if(confirm('Delete this item?')){closeModal();deleteItem(${no})}"><i class="ti ti-trash" style="font-size:12px;margin-right:4px"></i>Delete</button>
+      <button class="btn-c" onclick="closeModal()">Cancel</button>
+      <button class="btn-p" onclick="saveEditModal(${no})"><i class="ti ti-check" style="font-size:12px;margin-right:4px"></i>Save changes</button>
+    </div>`;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function saveEditModal(no){
+  const it=ITEMS.find(i=>i.no===no); if(!it)return;
+  it.item=document.getElementById('ef-item').value.trim()||it.item;
+  it.asset=document.getElementById('ef-asset').value;
+  it.program=document.getElementById('ef-prog').value;
+  it.available=parseInt(document.getElementById('ef-ava').value)||0;
+  it.need=parseInt(document.getElementById('ef-need').value)||0;
+  it.description=document.getElementById('ef-desc').value.trim();
+  it.progress=document.getElementById('ef-prog2').value.trim();
+  it.proc_status=document.getElementById('ef-procnote').value.trim()||document.getElementById('ef-proc').value;
+  DEPOTS.forEach(dep=>{
+    const fv=parseInt(document.getElementById('ef-flt-'+dep).value)||0;
+    const dv=parseInt(document.getElementById('ef-def-'+dep).value)||0;
+    it.flt[dep]=Math.max(0,fv);
+    it.def_qty[dep]=Math.max(0,dv);
+  });
+  txns.push({type:'edit',no,name:it.item,field:'full edit',val:'',ts:Date.now()});
+  closeModal();
+  renderAll();
+  if(window._fbSave)window._fbSave();
+}
+
+// ─── ADD NEW ITEM MODAL ───────────────────────────────────────────────────────
+function openAddModal(){
+  document.getElementById('modal-title').textContent='Add new UTEX item';
+  document.getElementById('modal-sub').textContent='Enter item details below';
+  const depInputs=DEPOTS.map(dep=>`
+    <div class="dep-edit-cell">
+      <label>${dep} — ${DEPOT_NAMES[dep]}</label>
+      <div class="dep-num-row">
+        <div class="dn"><label>Floating</label><input type="number" id="add-flt-${dep}" value="0" min="0"></div>
+        <div class="dn"><label>Defective</label><input type="number" id="add-def-${dep}" value="0" min="0"></div>
+      </div>
+    </div>`).join('');
+  document.getElementById('modal-body').innerHTML=`
+    <div class="edit-form">
+      <div class="ef"><label>Item name *</label><input type="text" id="add-item" placeholder="e.g. Distributor Valve PGC"></div>
+      <div class="ef"><label>Asset type *</label>
+        <select id="add-asset"><option>PGC</option><option>COACH</option><option>LOCO</option></select></div>
+      <div class="ef"><label>Program *</label>
+        <select id="add-prog"><option>Inhouse</option><option>Vendor</option><option>Outsource</option><option>Inhouse &amp; Vendor</option></select></div>
+      <div class="ef"><label>Proc. status</label>
+        <select id="add-proc"><option value="NA">N/A</option><option value="In Progress">In Progress</option><option value="Paper submitted">Paper submitted</option><option value="Preparing Paper">Preparing Paper</option><option value="Completed">Completed</option><option value="PO Terminated">PO Terminated</option></select></div>
+      <div class="ef"><label>Available (serviceable)</label><input type="number" id="add-ava" value="0" min="0"></div>
+      <div class="ef"><label>Need (negative = shortfall)</label><input type="number" id="add-need" value="0"></div>
+      <div class="ef full"><label>Description</label><input type="text" id="add-desc" placeholder="e.g. 10 unit - supplier name"></div>
+      <div class="ef full"><label>Proc. status note</label><textarea id="add-procnote" placeholder="e.g. PO ongoing, awaiting supply..."></textarea></div>
+      <div class="ef full">
+        <label style="margin-bottom:8px;display:block"><i class="ti ti-building-warehouse" style="font-size:12px;margin-right:4px;color:#1a3a5c"></i>Depot floating &amp; defective</label>
+        <div class="depot-edit-grid">${depInputs}</div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-c" onclick="closeModal()">Cancel</button>
+      <button class="btn-p" onclick="saveNewItem()"><i class="ti ti-plus" style="font-size:12px;margin-right:4px"></i>Add item</button>
+    </div>`;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function saveNewItem(){
+  const name=document.getElementById('add-item').value.trim();
+  if(!name){alert('Item name is required.');return;}
+  const flt={},def={};
+  DEPOTS.forEach(dep=>{
+    flt[dep]=parseInt(document.getElementById('add-flt-'+dep).value)||0;
+    def[dep]=parseInt(document.getElementById('add-def-'+dep).value)||0;
+  });
+  const procNote=document.getElementById('add-procnote').value.trim();
+  const newItem={
+    no:_nextNo++,
+    asset:document.getElementById('add-asset').value,
+    item:name,
+    program:document.getElementById('add-prog').value,
+    description:document.getElementById('add-desc').value.trim(),
+    progress:'',
+    proc_status:procNote||document.getElementById('add-proc').value,
+    need:parseInt(document.getElementById('add-need').value)||0,
+    available:parseInt(document.getElementById('add-ava').value)||0,
+    flt,def_qty:def
+  };
+  ITEMS.push(newItem);
+  txns.push({type:'add',no:newItem.no,name:newItem.item,ts:Date.now()});
+  closeModal();
+  populateItemSelect();
+  renderAll();
+  if(window._fbSave)window._fbSave();
+}
+
+function closeModal(){document.getElementById('modal-overlay').classList.remove('open');}
+
+// ─── DEPOT CARDS ──────────────────────────────────────────────────────────────
+function renderDepot(){
+  // Only PGC and COACH
+  const relevant=ITEMS.filter(it=>it.asset==='PGC'||it.asset==='COACH');
+  document.getElementById('depot-cards').innerHTML=DEPOTS.map(dep=>{
+    const here=relevant.filter(it=>(it.flt[dep]||0)>0||(it.def_qty[dep]||0)>0);
+    const tflt=relevant.reduce((a,it)=>a+(it.flt[dep]||0),0);
+    const tdef=relevant.reduce((a,it)=>a+(it.def_qty[dep]||0),0);
+    const crit=here.filter(it=>getStatus(it)==='crit').length;
+    const rows=here.slice(0,8).map(it=>`
+      <div class="depot-item-row">
+        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px" title="${it.item}">${it.item}</span>
+        <span style="display:flex;gap:8px;flex-shrink:0">
+          ${(it.flt[dep]||0)>0?`<span class="n-flt" style="font-size:11px"><i class="ti ti-arrows-exchange" style="font-size:10px"></i>${it.flt[dep]}</span>`:''}
+          ${(it.def_qty[dep]||0)>0?`<span class="n-def" style="font-size:11px"><i class="ti ti-tools" style="font-size:10px"></i>${it.def_qty[dep]}</span>`:''}
+        </span>
+      </div>`).join('');
+    return`<div class="depot-card">
+      <div class="depot-name"><i class="ti ti-building-warehouse" style="font-size:15px"></i>${DEPOT_NAMES[dep]} <span style="font-size:10px;color:#9ca3af;font-weight:400">(${dep})</span></div>
+      <div class="depot-stat"><span class="depot-lbl">Items tracked</span><span style="font-weight:600">${here.length}</span></div>
+      <div class="depot-stat"><span class="depot-lbl">Floating total</span><span class="n-flt">${tflt}</span></div>
+      <div class="depot-stat"><span class="depot-lbl">Defective total</span><span class="n-def">${tdef}</span></div>
+      ${crit?`<div class="depot-stat"><span class="depot-lbl">Critical items</span><span class="n-crit">${crit}</span></div>`:''}
+      ${here.length?`<hr class="depot-divider"><div class="depot-items-list">${rows}${here.length>8?`<div style="padding:3px 0;color:#9ca3af">+${here.length-8} more</div>`:''}</div>`:'<div style="font-size:11px;color:#9ca3af;margin-top:8px">No floating or defective units here.</div>'}
+    </div>`;
+  }).join('');
+}
+
+// ─── STOCK ENTRY ──────────────────────────────────────────────────────────────
+function populateItemSelect(){
+  document.getElementById('e-item').innerHTML=ITEMS.map(it=>`<option value="${it.no}">[${it.asset}] ${it.item}</option>`).join('');
+}
+function submitEntry(){
+  const no=parseInt(document.getElementById('e-item').value);
+  const depot=document.getElementById('e-depot').value;
+  const type=document.getElementById('e-type').value;
+  const qty=parseInt(document.getElementById('e-qty').value)||0;
+  const ref=document.getElementById('e-ref').value.trim();
+  const by=document.getElementById('e-by').value.trim();
+  const notes=document.getElementById('e-notes').value.trim();
+  if(!qty||qty<1){alert('Enter a valid quantity.');return;}
+  const it=ITEMS.find(i=>i.no===no); if(!it)return;
+  if(type==='svc-out'&&it.available<qty){alert(`Only ${it.available} available.`);return;}
+  if(type==='flt-out'&&it.available<qty){alert(`Only ${it.available} available to float.`);return;}
+  if(type==='def-out'){const d=it.def_qty[depot]||0;if(d<qty){alert(`Only ${d} defective at ${depot}.`);return;}}
+  if(type==='def-to-svc'){const d=totalDef(it);if(d<qty){alert(`Only ${d} defective total.`);return;}}
+  if(type==='svc-in')it.available+=qty;
+  else if(type==='svc-out')it.available-=qty;
+  else if(type==='flt-in')it.flt[depot]=(it.flt[depot]||0)+qty;
+  else if(type==='flt-out'){it.flt[depot]=(it.flt[depot]||0)+qty;it.available-=qty;}
+  else if(type==='def-in')it.def_qty[depot]=(it.def_qty[depot]||0)+qty;
+  else if(type==='def-out')it.def_qty[depot]=Math.max(0,(it.def_qty[depot]||0)-qty);
+  else if(type==='def-to-svc'){it.def_qty[depot]=Math.max(0,(it.def_qty[depot]||0)-qty);it.available+=qty;}
+  txns.push({type,no,depot,qty,ref,by,notes,name:it.item,ts:Date.now()});
+  if(window._fbSave)window._fbSave();
+  clearForm(); renderAll(); alert('Movement recorded successfully.');
+}
+function clearForm(){
+  document.getElementById('e-qty').value=1;
+  document.getElementById('e-ref').value='';
+  document.getElementById('e-by').value='';
+  document.getElementById('e-notes').value='';
+}
+
+// ─── TRANSACTION LOG ──────────────────────────────────────────────────────────
+function renderTxns(){
+  const all=[...txns].reverse();
+  if(!all.length){document.getElementById('txn-body').innerHTML='<div class="empty"><i class="ti ti-clipboard-x" style="font-size:32px;display:block;margin-bottom:8px"></i>No transactions yet.</div>';return;}
+  const TL={'svc-in':'Serviceable in','svc-out':'Serviceable out','flt-in':'Floating returned','flt-out':'Floating issued','def-in':'Defective received','def-out':'Defective to repair','def-to-svc':'Repaired → serviceable','edit':'Field edited','add':'Item added','delete':'Item deleted'};
+  const isPos=t=>['svc-in','flt-in','def-in','def-to-svc','add'].includes(t.type);
+  const isEdit=t=>t.type==='edit';
+  document.getElementById('txn-body').innerHTML='<div class="txn-list">'+all.slice(0,60).map(t=>{
+    const pos=isPos(t),edit=isEdit(t);
+    const bgCls=edit?'ti-edit-bg':pos?'ti-in-bg':'ti-out-bg';
+    const ic=edit?'ti ti-pencil':pos?'ti ti-arrow-bar-to-up':'ti ti-arrow-bar-to-down';
+    const col=edit?'#1a3a5c':pos?'#16a34a':'#dc2626';
+    const qty=t.qty?`<div class="ti-qty ${pos?'ti-qty-in':'ti-qty-out'}">${pos?'+':'-'}${t.qty}</div>`:(edit?`<div class="ti-qty ti-qty-edit">edited</div>`:'');
+    return`<div class="ti">
+      <div class="ti-ic ${bgCls}"><i class="${ic}" style="font-size:14px;color:${col}"></i></div>
+      <div class="ti-info">
+        <div class="ti-name">${t.name||'Unknown'} ${t.depot?`<span style="color:#9ca3af;font-weight:400">· ${DEPOT_NAMES[t.depot]||t.depot}</span>`:''}
+        </div>
+        <div class="ti-meta">${TL[t.type]||t.type}${t.field&&t.type==='edit'?' ['+t.field+']':''} · ${fmt(new Date(t.ts))}${t.ref?' · '+t.ref:''}${t.by?' · By: '+t.by:''}${t.notes?' · '+t.notes:''}</div>
+      </div>
+      ${qty}
+    </div>`;
+  }).join('')+'</div>';
+}
+
+// ─── SORT ─────────────────────────────────────────────────────────────────────
+function sortTable(col){
+  if(sortCol===col)sortAsc=!sortAsc;else{sortCol=col;sortAsc=true;}
+  document.querySelectorAll('table.mt th').forEach((th,i)=>th.classList.toggle('sorted',i===col));
+  ITEMS.sort((a,b)=>{
+    let va,vb;
+    if(col===0){va=a.no;vb=b.no;}else if(col===1){va=a.asset;vb=b.asset;}else if(col===2){va=a.item;vb=b.item;}else if(col===3){va=a.program;vb=b.program;}else if(col===4){va=a.available;vb=b.available;}else if(col===5){va=totalFlt(a);vb=totalFlt(b);}else if(col===6){va=totalDef(a);vb=totalDef(b);}else if(col===7){va=a.need;vb=b.need;}else if(col===9){va=getStatus(a);vb=getStatus(b);}else return 0;
+    if(typeof va==='number')return sortAsc?va-vb:vb-va;
+    return sortAsc?String(va).localeCompare(String(vb)):String(vb).localeCompare(String(va));
+  });
+  renderInventory();
+}
+
+// ─── TABS & FILTERS ───────────────────────────────────────────────────────────
+function switchTab(name,btn){
+  ['inventory','depot','entry','log'].forEach(t=>{const el=document.getElementById('tab-'+t);if(el)el.style.display=t===name?'':'none';});
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  if(name==='depot')renderDepot();
+  if(name==='log')renderTxns();
+}
+function applyFilters(){renderStats();renderInventory();}
+
+// ─── CLOCK ────────────────────────────────────────────────────────────────────
+function updateClock(){const n=new Date();document.getElementById('clk').textContent=n.toLocaleDateString('en-MY',{weekday:'short',day:'2-digit',month:'short',year:'numeric'})+' · '+n.toLocaleTimeString('en-MY',{hour:'2-digit',minute:'2-digit'});}
+
+function renderAll(){renderStats();renderInventory();renderDepot();renderTxns();}
+
+populateItemSelect();
+renderAll();
+updateClock();
+setInterval(updateClock,60000);
+
+</script>
+<script type="module">
+import { initializeApp }    from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc }
+  from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCQ2Lb5io_EC3fSBXSbIx9K8CbbbsXWObs",
+  authDomain: "utex-inventory-264de.firebaseapp.com",
+  projectId: "utex-inventory-264de",
+  storageBucket: "utex-inventory-264de.firebasestorage.app",
+  messagingSenderId: "1056184534805",
+  appId: "1:1056184534805:web:ccf6600b91cde50ce9cb1c"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+const ITEMS_DOC = doc(db, "utex_data", "items");
+const TXNS_DOC  = doc(db, "utex_data", "transactions");
+
+// Save helpers consolidated into window._fbSave below
+
+// ── LOAD on startup ─────────────────────────────────────────────────────────
+(async function loadFromFirestore(){
+  try {
+    document.getElementById("clk").textContent = "Loading data…";
+    const [iSnap, tSnap] = await Promise.all([getDoc(ITEMS_DOC), getDoc(TXNS_DOC)]);
+    if(iSnap.exists()){
+      const data = iSnap.data();
+      ITEMS   = data.list   || ITEMS;
+      _nextNo = data.nextNo || _nextNo;
+    }
+    if(tSnap.exists()){ txns = tSnap.data().list || []; }
+    populateItemSelect(); renderAll(); updateClock();
+    console.log("Firebase data loaded ✓");
+  } catch(e){
+    console.error("Firestore load error:", e);
+    populateItemSelect(); renderAll(); updateClock();
+  }
+})();
+
+// ── Patch save functions to also persist to Firestore ──────────────────────
+// _fbSave is called directly from each save function above
+window._fbSave = async function(){
+  try{ await setDoc(ITEMS_DOC, { list: ITEMS, nextNo: _nextNo }); }
+  catch(e){ console.error("Firestore save error:", e); }
+  try{ await setDoc(TXNS_DOC, { list: txns.slice(-200) }); }
+  catch(e){ console.error("Firestore txn save error:", e); }
+};
+</script>
+</body>
+</html>
